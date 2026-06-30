@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="installer_window">#160F28</color>
+    <color name="installer_on_window">#F8F3FF</color>
+    <color name="installer_on_window_muted">#C3B6DE</color>
+    <color name="installer_card">#24183F</color>
+    <color name="installer_card_alt">#1E1534</color>
+    <color name="installer_card_stroke">#503A84</color>
+    <color name="installer_on_card">#F8F3FF</color>
+    <color name="installer_on_card_muted">#C9BEDF</color>
+    <color name="installer_highlight">#A9FFDB</color>
+    <color name="installer_highlight_container">#3E2A66</color>
+    <color name="installer_progress_track">#4A356D</color>
+    <color name="installer_error">#FFB4AB</color>
+    <color name="ic_launcher_background">#2E1755</color>
+</resources>

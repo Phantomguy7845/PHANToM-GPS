@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function updatesProtectedSessionFields() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['sessionVersion', 'activeDeviceId']);
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+
+      // Clients may create profile data, but session fields are server-only.
+      allow create: if isOwner(uid)
+        && !('sessionVersion' in request.resource.data)
+        && !('activeDeviceId' in request.resource.data);
+
+      // Clients can update non-session profile fields only.
+      allow update: if isOwner(uid)
+        && !updatesProtectedSessionFields();
+
+      allow delete: if false;
+    }
+  }
+}

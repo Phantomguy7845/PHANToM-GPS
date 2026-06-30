@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.PhantomInstaller" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/installer_highlight</item>
+        <item name="colorOnPrimary">@color/installer_window</item>
+        <item name="colorSecondary">@color/installer_on_window</item>
+        <item name="colorSurface">@color/installer_card</item>
+        <item name="colorOnSurface">@color/installer_on_card</item>
+        <item name="android:windowBackground">@color/installer_window</item>
+        <item name="android:statusBarColor">@color/installer_window</item>
+        <item name="android:navigationBarColor">@color/installer_window</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="23">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
+    </style>
+</resources>

@@ -1,0 +1,166 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'com.google.gms.google-services'
+    id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin'
+    id 'dagger.hilt.android.plugin'
+    id 'kotlin-parcelize'
+    id 'com.google.devtools.ksp'
+}
+
+def tagName = '0.0.9'
+
+def sha256Hex(byte[] bytes) {
+    def digest = java.security.MessageDigest.getInstance("SHA-256").digest(bytes)
+    return digest.collect { String.format("%02X", (it as int) & 0xFF) }.join()
+}
+
+def certSha256FromSigningConfig(signingConfig) {
+    try {
+        if (signingConfig == null) return ""
+        def storeFile = signingConfig.storeFile
+        if (storeFile == null || !storeFile.exists()) return ""
+        def storePassword = signingConfig.storePassword
+        def keyAlias = signingConfig.keyAlias
+        def keyPassword = signingConfig.keyPassword ?: storePassword
+        if (!storePassword || !keyAlias) return ""
+
+        def ks = java.security.KeyStore.getInstance(java.security.KeyStore.getDefaultType())
+        ks.load(new java.io.FileInputStream(storeFile), storePassword.toCharArray())
+        def cert = ks.getCertificate(keyAlias)
+        if (cert == null) return ""
+        return sha256Hex(cert.getEncoded())
+    } catch (Throwable ignored) {
+        return ""
+    }
+}
+
+android {
+    compileSdk 34
+    defaultConfig {
+        applicationId "io.github.phantom.gps"
+        minSdk 27
+        targetSdk 34
+        versionCode 9
+        versionName tagName
+        // testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "TAG_NAME", "\"${tagName}\"")
+        buildConfigField("String", "GITHUB_RELEASES_API_BASE", "\"https://api.github.com/repos/Phantomguy7845/PHANToM-GPS/\"")
+        buildConfigField("String", "GITHUB_RELEASES_PAGE", "\"https://github.com/Phantomguy7845/PHANToM-GPS/releases\"")
+    }
+    splits {
+        abi {
+            enable true
+            reset()
+            include "arm64-v8a"
+            universalApk false
+        }
+    }
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
+    signingConfigs {
+        release {
+            def keystorePropertiesFile = rootProject.file("local.properties")
+            if (keystorePropertiesFile.exists()) {
+                def keystoreProperties = new Properties()
+                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+                def storeFilePath = keystoreProperties['storeFile']
+                if (storeFilePath) {
+                    keyAlias keystoreProperties['keyAlias']
+                    keyPassword keystoreProperties['keyPassword']
+                    storeFile file(storeFilePath)
+                    storePassword keystoreProperties['storePassword']
+                }
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            def activeSigningConfig = signingConfigs.release.storeFile ? signingConfigs.release : signingConfigs.debug
+            signingConfig activeSigningConfig
+            // Used for runtime anti-tamper checks (re-signing / repackaging will change this).
+            def cert = certSha256FromSigningConfig(activeSigningConfig)
+            if (!cert) cert = certSha256FromSigningConfig(signingConfigs.findByName("debug"))
+            buildConfigField "String", "SIGNING_CERT_SHA256", "\"${cert}\""
+        }
+        debug {
+            minifyEnabled false
+            // Used for runtime anti-tamper checks (re-signing / repackaging will change this).
+            def cert = certSha256FromSigningConfig(signingConfigs.findByName("debug"))
+            buildConfigField "String", "SIGNING_CERT_SHA256", "\"${cert}\""
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+    buildFeatures {
+        viewBinding true
+        buildConfig true
+    }
+
+    flavorDimensions += "version"
+    productFlavors {
+        full {
+            dimension "version"
+            versionNameSuffix "-full"
+        }
+    }
+
+    namespace 'io.github.phantom.gps'
+}
+
+dependencies {
+    fullImplementation platform('com.google.firebase:firebase-bom:34.9.0')
+    fullImplementation 'com.google.firebase:firebase-analytics'
+    fullImplementation 'com.google.firebase:firebase-functions'
+    fullImplementation 'com.google.firebase:firebase-functions-ktx:21.2.1'
+    fullImplementation 'androidx.work:work-runtime-ktx:2.9.0'
+
+    // temporary foss xposed fix from https://github.com/deltazefiro/Amarok-Hider/issues/160
+    // compileOnly 'de.robv.android.xposed:api:82'
+    compileOnly 'com.github.deltazefiro:XposedBridge:main-SNAPSHOT'
+    implementation 'org.lsposed.hiddenapibypass:hiddenapibypass:4.3'
+
+    fullImplementation 'com.google.android.gms:play-services-location:21.0.1'
+    fullImplementation 'com.google.android.gms:play-services-maps:18.1.0'
+
+
+    implementation 'androidx.core:core-ktx:1.9.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0-alpha01'
+    implementation 'androidx.activity:activity-ktx:1.6.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.0-alpha05'
+    implementation 'androidx.preference:preference:1.2.0'
+    implementation 'androidx.datastore:datastore-preferences:1.0.0'
+    implementation "androidx.drawerlayout:drawerlayout:1.2.0-alpha01"
+    implementation 'androidx.room:room-runtime:2.5.0'
+    implementation 'androidx.room:room-ktx:2.5.0'
+    ksp 'androidx.room:room-compiler:2.5.0'
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.0-alpha04"
+    implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.6.0-alpha04"
+    implementation "androidx.lifecycle:lifecycle-process:2.7.0"
+
+    implementation "com.google.android.material:material:1.12.0"
+    implementation "com.google.dagger:hilt-android:2.55"
+    ksp "com.google.dagger:hilt-compiler:2.55"
+
+    // timber
+    implementation 'com.jakewharton.timber:timber:5.0.1'
+
+    // retrofit
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+
+    implementation 'com.github.lukkass222:virtual-joystick-android:1.13.5'
+}
+
